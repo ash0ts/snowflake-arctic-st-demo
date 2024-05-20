@@ -10,11 +10,15 @@ st.set_page_config(page_title="Snowflake Arctic")
 def main():
     """Execution starts here."""
     get_replicate_api_token()
-    weave.init("snowflake-arctic-streamlit-example")
+    init_weave()
     display_sidebar_ui()
     init_chat_history()
     display_chat_messages()
     get_and_process_prompt()
+
+# @st.cache_resource(show_spinner=False)
+def init_weave():
+    weave.init("snowflake-arctic-streamlit-example")
 
 def get_replicate_api_token():
     os.environ['REPLICATE_API_TOKEN'] = st.secrets['REPLICATE_API_TOKEN']
@@ -165,7 +169,7 @@ def parse_user_prompt(messages):
     return prompt_str
 
 @weave.op()
-def log_message_chunk(prompt_str, temperature, top_p):
+def return_arctic_response(prompt_str, temperature, top_p):
     return st.session_state.messages[-1]["content"]
 
 def communicate_with_arctic(prompt_str, temperature, top_p):
@@ -177,7 +181,7 @@ def communicate_with_arctic(prompt_str, temperature, top_p):
                                   "top_p": top_p,
                                   })):
         if (event_index + 0) % 50 == 0:
-            log_message_chunk(prompt_str, temperature, top_p)
+            # return_arctic_response(prompt_str, temperature, top_p)
             if not check_safety():
                 abort_chat("I cannot answer this question.")
         st.session_state.messages[-1]["content"] += str(event)
@@ -197,7 +201,7 @@ def generate_arctic_response():
     
     for response in communicate_with_arctic(prompt_str, st.session_state.temperature, st.session_state.top_p):
         yield response
-    log_message_chunk(prompt_str, st.session_state.temperature, st.session_state.top_p)
+    return_artic_response(prompt_str, st.session_state.temperature, st.session_state.top_p)
 
     # Final safety check...
     if not check_safety():
